@@ -22,29 +22,35 @@ let cityModel = mongoose.model('City', citySchema);
 // newyork.save()
 
 
+async function getWeather(cities) {
+    let weather_data = [];
+    for (let city_obj of cities) {
+        let city = city_obj.name;
+        let url = `http://api.openweathermap.org/data/2.5/weather?q=${city}&units=imperial&appid=271d1234d3f497eed5b1d80a07b3fcd1`;
+        let res_body = await request(url);
+        let weather_json = JSON.parse(res_body);
+        let weather = {
+            city: weather_json.name,
+            temperature: Math.round(weather_json.main.temp),
+            description: weather_json.weather[0].description,
+            icon: weather_json.weather[0].icon
+        }
+        weather_data.push(weather);
+    }
 
-
-let city = 'Los Angeles';
-let url = `http://api.openweathermap.org/data/2.5/weather?q=${city}&units=imperial&appid=271d1234d3f497eed5b1d80a07b3fcd1`;
+    return weather_data;
+}
 
 app.get('/', function (req,res) {
-    request(url, function (error, response, body) {
-       weather_json = JSON.parse(body);
-       console.log(weather_json);
 
-       let weather = {
-           city: weather_json.name,
-           temperature: Math.round(weather_json.main.temp),
-           description: weather_json.weather[0].description,
-           icon: weather_json.weather[0].icon
-       }
+    cityModel.find({}, function (err,cities) {
+        // console.log(cities);
+        getWeather(cities).then(function(results) {
+           // console.log(results);
 
-       let weather_data = {weather: weather};
-       console.log('===============>');
-       console.log(weather_data);
-
-        res.render('weather', weather_data);
-
+           let weather_data = {weather_data: results};
+           res.render('weather', weather_data);
+        });
     });
 });
 
